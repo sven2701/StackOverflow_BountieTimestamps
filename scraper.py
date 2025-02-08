@@ -55,25 +55,20 @@ def append_to_parquet(dataframe, path):
     except Exception as e:
         print(f"Error writing to Parquet file '{path}': {e}")
 
-def get_unprocessed_post_ids(processed_ids):
-    """
-    Query unprocessed PostIds from the BountyVotes file.
-
-    Args:
-        processed_ids (list): A list of already processed question IDs.
-
-    Returns:
-        list: A list of unprocessed Post IDs.
-    """
+def get_unprocessed_post_ids():
     con = duckdb.connect()
     query = f"""
-        SELECT DISTINCT PostId 
-        FROM parquet_scan('{BOUNTY_VOTES_PATH}') 
-        WHERE VoteTypeId = 8
-          AND PostId NOT IN {tuple(processed_ids) if processed_ids else '(0)'}
+        SELECT DISTINCT b.PostId
+        FROM parquet_scan('{BOUNTY_VOTES_PATH}') b
+        WHERE b.VoteTypeId = 8
+          AND b.PostId NOT IN (
+              SELECT DISTINCT r.question_id
+              FROM parquet_scan('{RESULTS_PATH}') r
+          )
     """
     post_ids_data = con.execute(query).fetchall()
-    return [p[0] for p in post_ids_data]
+    con.close()
+    return [row[0] for row in post_ids_data]
 
 def configure_driver():
     """
@@ -84,7 +79,7 @@ def configure_driver():
     """
     chrome_options = ChromeOptions()
     # Uncomment the following options for headless mode and faster performance
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -136,8 +131,10 @@ def scrape_timeline_events(driver, question_id):
                 elif 'bounty ended' in event_text:
                     bounty_end.append(date)
 
+
         if not bounty_start or not bounty_end:
-            print(f"question_id={question_id} missing one or both dates -> start={bounty_start}, end={bounty_end}")
+            x = 0
+            # print(f"question_id={question_id} missing one or both dates -> start={bounty_start}, end={bounty_end}")
 
         return {
             'question_id': question_id,
@@ -160,14 +157,10 @@ def process_results(results):
         df = pd.DataFrame(results)
         append_to_parquet(df, RESULTS_PATH)
 
-        processed_df = pd.DataFrame({'question_id': [r['question_id'] for r in results]})
-        append_to_parquet(processed_df, PROCESSED_IDS_PATH)
-
 # Main Execution
 if __name__ == "__main__":
     create_data_directory()
-    processed_ids = load_processed_ids()
-    post_ids = get_unprocessed_post_ids(processed_ids)
+    post_ids = get_unprocessed_post_ids()
 
     if not post_ids:
         print("No unprocessed Post IDs found.")
