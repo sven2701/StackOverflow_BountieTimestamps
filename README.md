@@ -1,1 +1,1 @@
-# StackOverflow_BountieTimestamps
+# Stack Overflow Scraper for Bounty Voting Timestamps
