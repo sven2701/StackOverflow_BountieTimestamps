@@ -12,7 +12,8 @@ from fastparquet import write
 DATA_DIR = "./data"
 RESULTS_PATH = os.path.join(DATA_DIR, "bounty_timeline_results.parquet")
 PROCESSED_IDS_PATH = os.path.join(DATA_DIR, "processed_question_ids.parquet")
-BOUNTY_VOTES_PATH = os.path.join(DATA_DIR, "BountyVotes.parquet")
+# BOUNTY_VOTES_PATH = os.path.join(DATA_DIR, "BountyVotes.parquet")
+BOUNTY_VOTES_PATH = os.path.join(DATA_DIR, "Votes.parquet")
 WRITE_BATCH_SIZE = 10
 SELENIUM_TIMEOUT = 15
 
